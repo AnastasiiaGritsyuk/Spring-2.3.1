@@ -1,11 +1,10 @@
 package web.dao;
 
+import org.springframework.transaction.annotation.Transactional;
 import web.model.User;
 import org.springframework.stereotype.Repository;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.transaction.Transactional;
-import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -15,11 +14,18 @@ public class UserDaoImpl implements UserDao{
     private EntityManager entityManager;
 
     @Override
+    @Transactional
     public List<User> getAllUsers() {
-        return entityManager.createQuery("from User order by id", User.class).getResultList();
+        try {
+            return entityManager.createQuery("from User order by id", User.class)
+                    .getResultList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get users", e);
+        }
     }
 
     @Override
+    @Transactional
     public User getUserById(Long id) {
         return entityManager.find(User.class, id);
     }
@@ -34,28 +40,39 @@ public class UserDaoImpl implements UserDao{
     @Transactional
     public void updateUser(Long id, User updatedUser) {
         User userToBeUpdated = getUserById(id);
-        userToBeUpdated.setName(updatedUser.getName());
-        userToBeUpdated.setAge(updatedUser.getAge());
-        userToBeUpdated.setEmail(updatedUser.getEmail());
-        entityManager.merge(userToBeUpdated);
+        if (userToBeUpdated != null) {
+            userToBeUpdated.setName(updatedUser.getName());
+            userToBeUpdated.setAge(updatedUser.getAge());
+            userToBeUpdated.setEmail(updatedUser.getEmail());
+            entityManager.merge(userToBeUpdated);
+        }
     }
 
     @Override
     @Transactional
     public void deleteUser(Long id) {
-
         User userToDelete = getUserById(id);
         if (userToDelete != null) {
             entityManager.remove(userToDelete);
         }
         entityManager.flush();
 
-        entityManager.createNativeQuery(
-                        "UPDATE users SET id = id - 1 WHERE id > ?1")
-                .setParameter(1, id)
-                .executeUpdate();
+        List<Long> idsToUpdate = entityManager.createQuery(
+                        "SELECT u.id FROM User u WHERE u.id > :id ORDER BY u.id", Long.class)
+                .setParameter("id", id)
+                .getResultList();
+
+        for (Long currentId : idsToUpdate) {
+            entityManager.createNativeQuery(
+                            "UPDATE users SET id = ?1 WHERE id = ?2")
+                    .setParameter(1, currentId - 1)
+                    .setParameter(2, currentId)
+                    .executeUpdate();
+        }
+
 
         resetSequence();
+        entityManager.clear();
     }
 
     @Transactional
