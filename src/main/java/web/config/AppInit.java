@@ -63,8 +63,8 @@ public class AppInit extends AbstractAnnotationConfigDispatcherServletInitialize
         encodingFilter.setForceEncoding(true);
 
         return new Filter[]{
+                encodingFilter,
                 new HiddenHttpMethodFilter(),
-                encodingFilter
         };
     }
 }

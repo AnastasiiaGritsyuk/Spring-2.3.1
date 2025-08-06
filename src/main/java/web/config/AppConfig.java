@@ -32,7 +32,7 @@ public class AppConfig {
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(env.getRequiredProperty("db.driver"));
-        dataSource.setUrl(env.getRequiredProperty("db.url") + "?autocommit=false");
+        dataSource.setUrl(env.getRequiredProperty("db.url") + "?autocommit=false" + "?useUnicode=true&characterEncoding=UTF-8");
         dataSource.setUsername(env.getRequiredProperty("db.username"));
         dataSource.setPassword(env.getProperty("db.password"));
         return dataSource;
@@ -57,6 +57,7 @@ public class AppConfig {
         props.put("hibernate.connection.charSet", "UTF-8");
         props.put("hibernate.connection.characterEncoding", "UTF-8");
         props.put("hibernate.connection.useUnicode", "true");
+        props.put("hibernate.jdbc.lob.non_contextual_creation", "true");
 
         return props;
     }
